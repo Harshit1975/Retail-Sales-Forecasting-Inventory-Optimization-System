@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Retail & Inventory System</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- jsPDF and AutoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <!-- Leaflet CSS & JS for Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="background-gradients">
+        <div class="blob blob1"></div>
+        <div class="blob blob2"></div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast">Action completed successfully.</div>
+
+    <nav class="glass-header">
+        <div class="logo">
+            <span class="logo-icon">🛒</span>
+            <h1>Smart Retail AI</h1>
+        </div>
+        <div class="nav-links">
+            <a href="#" class="tab-link active" data-tab="tab-forecaster" id="link-forecaster">Sales Forecaster</a>
+            <a href="#" class="tab-link" data-tab="tab-inventory" id="link-inventory">All Stock Levels</a>
+            <a href="#" class="tab-link" data-tab="tab-costs" id="link-costs">Leaderboard</a>
+            <!-- NEW TAB -->
+            <a href="#" class="tab-link" data-tab="tab-tracking" id="link-tracking" style="color: #38bdf8;">🚚 Order Tracking</a>
+            <div class="user-profile">
+                <span>Manager Mode</span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <!-- TAB 1: SALES FORECASTER -->
+        <div id="tab-forecaster" class="tab-content active-tab">
+            <header class="page-title">
+                <h2>Predict Future Sales & Plan Stock</h2>
+                <p>Use AI to guess how much of an item you will sell next month. Play with promotions and weather to see what happens!</p>
+            </header>
+
+            <div class="layout-grid">
+                <!-- Controls Panel -->
+                <section class="glass-card controls-card">
+                    <div class="card-header">
+                        <h3>Store Parameters</h3>
+                    </div>
+                    <form id="forecast-form">
+                        <div class="form-group">
+                            <label for="store_id">Select Store</label>
+                            <select id="store_id" name="store_id">
+                                <option value="1">Store 1 - Reliance Smart (Mumbai)</option>
+                                <option value="2">Store 2 - D-Mart Wholesale (Pune)</option>
+                                <option value="3">Store 3 - Amazon Fresh Kiosk (Delhi)</option>
+                                <option value="4">-- Add Custom Store Region --</option>
+                            </select>
+                        </div>
+                        
+                        <!-- UPDATED TO REAL PRODUCTS -->
+                        <div class="form-group">
+                            <label for="item_id">Select Real Product</label>
+                            <select id="item_id" name="item_id">
+                                <option value="1052">Nike Air Force 1 Sneakers (SKU: 1052)</option>
+                                <option value="1088">Sony Bravia 55" 4K TV (SKU: 1088)</option>
+                                <option value="1015">Kellogg's Corn Flakes 500g (SKU: 1015)</option>
+                                <option value="2004">Samsung Galaxy S24 Ultra (SKU: 2004)</option>
+                                <option value="9999">-- Enter Custom Item ID --</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="on_hand">How much do you currently have?</label>
+                            <input type="number" id="on_hand" name="on_hand" value="120" min="0">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="lead_time">Days to deliver (Lead Time)</label>
+                            <input type="number" id="lead_time" name="lead_time" value="7" min="1">
+                        </div>
+                        
+                        <!-- DISCOUNT SLIDER -->
+                        <div class="form-group slide-container">
+                            <label for="promo_slider">🎉 What-If: Run a Promotion Discount (<span id="promo_val_display">0</span>%)</label>
+                            <input type="range" min="0" max="50" value="0" class="slider" id="promo_slider">
+                        </div>
+
+                        <!-- WEATHER & HOLIDAY TOGGLES -->
+                        <div class="form-group flex-checkboxes">
+                            <label class="checkbox-container">🌧️ Monsoon Rain
+                                <input type="checkbox" id="toggle_rain">
+                                <span class="checkmark"></span>
+                            </label>
+                            <label class="checkbox-container" style="margin-top: 10px;">🎆 Diwali Mega Rush
+                                <input type="checkbox" id="toggle_holiday">
+                                <span class="checkmark"></span>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="primary-btn" id="run-btn">
+                            <span>Predict Sales & Order Amount</span>
+                            <div class="loader" id="btn-loader"></div>
+                        </button>
+
+                        <button type="button" class="secondary-btn" id="export-btn" disabled>
+                            <span>📄 Download Executive PDF Report</span>
+                        </button>
+                    </form>
+                </section>
+
+                <!-- Metrics Panel -->
+                <section class="glass-card metrics-card">
+                    <div class="card-header flex-between">
+                        <h3>What should you do?</h3>
+                        <span id="stock-health" class="badge">Waiting for prediction...</span>
+                    </div>
+                    <div class="metrics-grid">
+                        <div class="metric-box focus-box" title="The exact amount you should buy next time.">
+                            <h4>Amount to Buy Now</h4>
+                            <div class="val highlight" id="val_order_qty">--</div>
+                        </div>
+                        <div class="metric-box" title="When stock hits this number, order more!">
+                            <h4>Order When Stock Reaches</h4>
+                            <div class="val" id="val_rop">--</div>
+                        </div>
+                        <div class="metric-box" title="Extra items kept just in case of delays.">
+                            <h4>Backup (Safety Stock)</h4>
+                            <div class="val" id="val_ss">--</div>
+                        </div>
+                        <div class="metric-box" title="The most cost-effective amount to buy.">
+                            <h4>Cheapest Order Size</h4>
+                            <div class="val" id="val_eoq">--</div>
+                        </div>
+                    </div>
+                    <div class="analytics-bar">
+                        <div class="stat-item">
+                            <span class="stat-label">AI Confidence</span>
+                            <span class="stat-val">94.2%</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Risk of Running Out</span>
+                            <span class="stat-val text-green" id="val_risk">Low (< 5%)</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Chart Panel -->
+                <section class="glass-card chart-card">
+                    <div class="chart-header">
+                        <h3>Predicted Sales for Next 30 Days</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="forecastChart"></canvas>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- TAB 2: ALL STOCK LEVELS -->
+        <div id="tab-inventory" class="tab-content" style="display: none;">
+            <header class="page-title">
+                <h2>All Stock Levels</h2>
+                <p>A quick view of items that need your attention across all stores.</p>
+            </header>
+            
+            <section class="glass-card">
+                <table class="simple-table table-padded">
+                    <thead>
+                        <tr>
+                            <th>Product Name</th>
+                            <th>Store</th>
+                            <th>Current Stock</th>
+                            <th>Status Indicator</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="bold-text">Nike Air Force 1</td>
+                            <td>Store 1 (Reliance Smart)</td>
+                            <td>12</td>
+                            <td><span class="badge danger">Critically Low!</span></td>
+                            <td>
+                                <button class="small-action-btn reorder-btn" data-item="1052" data-name="Nike Air Force 1" data-store="1">Dispatch</button>
+                                <button class="small-action-btn email-btn" style="margin-left:5px; border-color: var(--warning); color: var(--warning);" data-item="1052" data-name="Nike Air Force 1" data-store="Reliance Smart">📧 Email</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="bold-text">Sony Bravia 55" TV</td>
+                            <td>Store 1 (Reliance Smart)</td>
+                            <td>450</td>
+                            <td><span class="badge warning">Too Much Stock</span></td>
+                            <td><button class="small-action-btn stop-buying-btn">Halt Ordering</button></td>
+                        </tr>
+                        <tr>
+                            <td class="bold-text">Kellogg's Corn Flakes</td>
+                            <td>Store 3 (Amazon Fresh)</td>
+                            <td>85</td>
+                            <td><span class="badge success">Healthy</span></td>
+                            <td><button class="small-action-btn view-ai-btn" data-item="1015" data-store="3">Run AI Prediction</button></td>
+                        </tr>
+                        <tr>
+                            <td class="bold-text">Samsung Galaxy S24</td>
+                            <td>Store 2 (D-Mart)</td>
+                            <td>0</td>
+                            <td><span class="badge danger">Out of Stock!</span></td>
+                            <td>
+                                <button class="small-action-btn reorder-btn" data-item="2004" data-name="Samsung Galaxy S24" data-store="2">Dispatch</button>
+                                <button class="small-action-btn email-btn" style="margin-left:5px; border-color: var(--warning); color: var(--warning);" data-item="2004" data-name="Samsung Galaxy S24" data-store="D-Mart">📧 Email</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </div>
+
+        <!-- NEW TAB: LIVE ORDER TRACKING -->
+        <div id="tab-tracking" class="tab-content" style="display: none;">
+            <header class="page-title">
+                <h2>Real-Time Order Tracking</h2>
+                <p>Monitor the delivery status of orders you successfully dispatched today.</p>
+            </header>
+
+            <!-- Map Container -->
+            <div id="tracking-map" style="width: 100%; height: 300px; border-radius: 12px; margin-bottom: 20px; overflow: hidden; border: 1px solid var(--card-border);"></div>
+
+            <div class="layout-grid" style="grid-template-columns: 1fr; gap: 1rem;" id="tracking-container">
+                <!-- Hardcoded active order -->
+                <section class="glass-card flex-between" style="padding: 1.5rem;">
+                    <div>
+                        <h3 style="margin-bottom: 0.5rem;">Order #88392 - Samsung Galaxy S24</h3>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem;">Heading to: Store 1 (Reliance Smart Mumbai) • Qty: 200</p>
+                    </div>
+                    <div style="width: 40%;">
+                        <div class="flex-between" style="font-size: 0.8rem; margin-bottom: 5px;">
+                            <span class="text-green">In Transit</span>
+                            <span class="text-secondary">Arriving in 2 Days</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" style="width: 75%; background: var(--success);"></div>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="glass-card flex-between" style="padding: 1.5rem;">
+                    <div>
+                        <h3 style="margin-bottom: 0.5rem;">Order #88391 - Kellogg's Corn Flakes</h3>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem;">Heading to: Warehouse Main • Qty: 1000</p>
+                    </div>
+                    <div style="width: 40%;">
+                        <div class="flex-between" style="font-size: 0.8rem; margin-bottom: 5px;">
+                            <span style="color: var(--accent);">Processing at Factory</span>
+                            <span class="text-secondary">Arriving in 6 Days</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" style="width: 25%; background: var(--accent);"></div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- TAB 3: PROFIT & COSTS & LEADERBOARD -->
+        <div id="tab-costs" class="tab-content" style="display: none;">
+            <header class="page-title">
+                <h2>Profit & Leaderboard Analytics</h2>
+                <p>See exactly what is making money and what is losing money!</p>
+            </header>
+            
+            <div class="layout-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 2rem;">
+                <section class="glass-card">
+                    <h3 style="color: #34d399;">🏆 Top 3 Best Sellers (High Profit)</h3>
+                    <ul class="cost-list leaderboard">
+                        <li><span>1. Sony Bravia 55" 4K TV</span> <span class="text-green">+$12,450 / mo</span></li>
+                        <li><span>2. Kellogg's Corn Flakes</span> <span class="text-green">+$8,900 / mo</span></li>
+                        <li><span>3. Nike Air Force 1</span> <span class="text-green">+$5,100 / mo</span></li>
+                    </ul>
+                </section>
+
+                <section class="glass-card">
+                    <h3 style="color: #f87171;">☠️ Top 3 Worst Sellers (Losing Money)</h3>
+                    <ul class="cost-list leaderboard">
+                        <li><span>1. Obsolete DVD Players</span> <span class="text-red">-$1,250 / mo</span></li>
+                        <li><span>2. Out of Season Jackets</span> <span class="text-red">-$800 / mo</span></li>
+                        <li><span>3. Fidget Spinners</span> <span class="text-red">-$340 / mo</span></li>
+                    </ul>
+                </section>
+            </div>
+            
+            <section class="glass-card">
+                <h3>What is "Storage Cost" vs "Ordering Cost"?</h3>
+                <p style="color: var(--text-secondary); line-height: 1.6; margin-top: 10px;">
+                    <strong>Storage Cost:</strong> It costs money to keep items sitting in a warehouse.<br>
+                    <strong>Ordering Cost:</strong> It costs money to make delivery trucks run back and forth.<br><br>
+                    Our AI automatically finds the perfect mathematical balance so you don't order too rarely (high storage cost) or too often (high truck cost).
+                </p>
+            </section>
+        </div>
+
+    </main>
+
+    <!-- Modal for Reorder / Dispatching -->
+    <div id="dispatch-modal" class="modal-overlay">
+        <div class="modal-content glass-card">
+            <div class="modal-header">
+                <h2>Create Purchase Order</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="dispatch-form">
+                    <div class="form-group">
+                        <label>Item Being Ordered</label>
+                        <input type="text" id="modal-item" disabled class="disabled-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Delivery Target (Store / Warehouse)</label>
+                        <input type="text" id="modal-store" disabled class="disabled-input">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Order Amount (Units)</label>
+                        <input type="number" id="modal-qty" value="100" min="1">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Select Delivery Address</label>
+                        <select id="modal-address">
+                            <option value="main">Main Warehouse - 789 Supply Chain Blvd</option>
+                            <option value="store1">Store 1 Direct Delivery - Reliance Smart (Mumbai)</option>
+                            <option value="store2">Store 2 Direct Delivery - D-Mart Wholesale (Pune)</option>
+                            <option value="store3">Store 3 Direct Delivery - Amazon Fresh (Delhi)</option>
+                        </select>
+                    </div>
+
+                    <button type="button" class="primary-btn" id="confirm-dispatch-btn">
+                        <span>Confirm Dispatch & Add to Live Tracking</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- UPGRADED Email Modal -->
+    <div id="email-modal" class="modal-overlay">
+        <div class="modal-content glass-card" style="border-color: var(--warning);">
+            <div class="modal-header">
+                <h2 style="color: var(--warning);">Draft Internal Email</h2>
+                <button class="close-email-modal" style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- NOW EDITABLE -->
+                <div class="form-group">
+                    <label>To: (Enter Recipient Email)</label>
+                    <input type="email" id="email-to" value="regional.manager@retailhq.com" class="editable-input" style="border: 1px solid var(--accent);">
+                </div>
+                <!-- NEW CC Field -->
+                <div class="form-group">
+                    <label>CC: (Optional)</label>
+                    <input type="email" id="email-cc" placeholder="supply.team@retailhq.com" class="editable-input">
+                </div>
+                <div class="form-group">
+                    <label>Severity Level</label>
+                    <select id="email-severity" style="border: 1px solid var(--warning);">
+                        <option value="Critical">🔴 CRITICAL (Stockout within 24hrs)</option>
+                        <option value="High">🟠 HIGH (Stockout likely this week)</option>
+                        <option value="Medium">🟡 MEDIUM (Needs review)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Message Body</label>
+                    <textarea id="email-body" rows="5" style="width:100%; padding: 10px; background: rgba(15,23,42,0.8); border: 1px solid var(--card-border); color: white; border-radius: 8px; font-family: inherit; font-size: 0.9rem;"></textarea>
+                </div>
+                <button type="button" class="primary-btn" id="send-email-btn" style="background: linear-gradient(135deg, var(--warning), #d97706);">
+                    <span>✈️ Send Alert</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating AI Chatbot Widget -->
+    <div class="chatbot-widget">
+        <div class="chatbot-toggle" id="chatbot-toggle">
+            🤖
+        </div>
+        <div class="chatbot-window glass-card" id="chatbot-window">
+            <div class="chatbot-header">
+                <h3>Retail AI Assistant</h3>
+                <button id="close-chatbot">&times;</button>
+            </div>
+            <div class="chatbot-messages" id="chatbot-messages">
+                <div class="msg ai-msg">Hello! I am your AI Inventory Assistant. Ask me anything about your stock or predictions!</div>
+            </div>
+            <div class="chatbot-input">
+                <input type="text" id="chatbot-input-field" placeholder="E.g. What is my best seller?">
+                <button id="chatbot-send">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
