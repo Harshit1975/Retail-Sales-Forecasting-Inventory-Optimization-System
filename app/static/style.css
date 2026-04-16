@@ -194,3 +194,402 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
     75%, 100% { transform: scale(2.5); opacity: 0; }
 }
 
+.route-marker div {
+    border: 2px solid white !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3) !important;
+}
+
+/* ===== REAL-TIME DASHBOARD STYLES ===== */
+
+.live-indicator {
+    color: #ef4444;
+    font-weight: 600;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Sales Ticker */
+.sales-ticker {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.ticker-item {
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--card-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.ticker-item .store {
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.ticker-item .product {
+    color: var(--text-primary);
+}
+
+.ticker-item .amount {
+    font-weight: 600;
+    color: #10b981;
+}
+
+/* Inventory Heatmap */
+.store-inventory {
+    margin-bottom: 1.5rem;
+}
+
+.store-inventory h4 {
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.5rem;
+}
+
+.product-item {
+    padding: 0.75rem;
+    border-radius: 8px;
+    border: 1px solid var(--card-border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.85rem;
+}
+
+.product-item.normal {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: #10b981;
+}
+
+.product-item.warning {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: #f59e0b;
+}
+
+.product-item.critical {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: #ef4444;
+}
+
+.product-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.product-stock {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.product-status {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Weather Dashboard */
+.weather-item {
+    padding: 1rem;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.weather-item h4 {
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+}
+
+.weather-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.weather-info span {
+    font-size: 0.9rem;
+}
+
+.temp {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #3b82f6;
+}
+
+.condition {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.humidity {
+    color: var(--text-secondary);
+}
+
+.forecast {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.forecast span {
+    background: rgba(59, 130, 246, 0.1);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+/* Competitor Dashboard */
+.competitor-product {
+    padding: 1rem;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.competitor-product h4 {
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+}
+
+.price-comparison {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.our-price {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #10b981;
+    padding: 0.5rem;
+    background: rgba(16, 185, 129, 0.1);
+    border-radius: 4px;
+}
+
+.competitor-prices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.competitor-prices span {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.competitor-prices .lower {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.competitor-prices .higher {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+/* Supplier Dashboard */
+.supplier-item {
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    border: 1px solid var(--card-border);
+}
+
+.supplier-item.active {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: #10b981;
+}
+
+.supplier-item.delayed {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: #f59e0b;
+}
+
+.supplier-item.on-hold {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: #ef4444;
+}
+
+.supplier-item h4 {
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.supplier-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+}
+
+.supplier-info span {
+    padding: 0.25rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+/* System Health */
+.health-metric {
+    margin-bottom: 1rem;
+}
+
+.health-metric span:first-child {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.health-metric span:last-child {
+    font-weight: 700;
+    color: var(--accent);
+}
+
+/* Demand Patterns */
+.trending-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.product-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.demand-increase {
+    color: #10b981;
+    font-weight: 700;
+}
+
+.social-mentions {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.season-item {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.season-item h4 {
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+}
+
+.season-items {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.price-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.category {
+    font-weight: 600;
+    text-transform: capitalize;
+    color: var(--text-primary);
+}
+
+.sensitivity {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+}
+
+.sensitivity.high {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.sensitivity.medium {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+}
+
+.sensitivity.low {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+/* Loading States */
+.loading, .heatmap-loading, .weather-loading, .competitor-loading, .supplier-loading {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.loading::after, .heatmap-loading::after, .weather-loading::after,
+.competitor-loading::after, .supplier-loading::after {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--accent);
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s ease-in-out infinite;
+    margin-left: 0.5rem;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive Design for Real-Time Dashboard */
+@media (max-width: 768px) {
+    .product-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .supplier-info {
+        grid-template-columns: 1fr;
+    }
+
+    .weather-info {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .competitor-prices {
+        flex-direction: column;
+    }
+}
+

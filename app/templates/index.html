@@ -15,6 +15,8 @@
     <!-- Leaflet CSS & JS for Map -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Socket.IO for Real-Time Updates -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -35,8 +37,11 @@
             <a href="#" class="tab-link active" data-tab="tab-forecaster" id="link-forecaster">Sales Forecaster</a>
             <a href="#" class="tab-link" data-tab="tab-inventory" id="link-inventory">All Stock Levels</a>
             <a href="#" class="tab-link" data-tab="tab-costs" id="link-costs">Leaderboard</a>
-            <!-- NEW TAB -->
-            <a href="#" class="tab-link" data-tab="tab-tracking" id="link-tracking" style="color: #38bdf8;">🚚 Order Tracking</a>
+            <a href="#" class="tab-link" data-tab="tab-tracking" id="link-tracking">🚚 Order Tracking</a>
+            <!-- NEW REAL-TIME TABS -->
+            <a href="#" class="tab-link" data-tab="tab-realtime" id="link-realtime" style="color: #00ff88;">⚡ Real-Time Dashboard</a>
+            <a href="#" class="tab-link" data-tab="tab-analytics" id="link-analytics" style="color: #ff6b6b;">📊 Live Analytics</a>
+            <a href="#" class="tab-link" data-tab="tab-demand" id="link-demand" style="color: #4ecdc4;">🔥 Demand Patterns</a>
             <div class="user-profile">
                 <span>Manager Mode</span>
             </div>
@@ -236,38 +241,7 @@
             <div id="tracking-map" style="width: 100%; height: 300px; border-radius: 12px; margin-bottom: 20px; overflow: hidden; border: 1px solid var(--card-border);"></div>
 
             <div class="layout-grid" style="grid-template-columns: 1fr; gap: 1rem;" id="tracking-container">
-                <!-- Hardcoded active order -->
-                <section class="glass-card flex-between" style="padding: 1.5rem;">
-                    <div>
-                        <h3 style="margin-bottom: 0.5rem;">Order #88392 - Samsung Galaxy S24</h3>
-                        <p style="color: var(--text-secondary); font-size: 0.9rem;">Heading to: Store 1 (Reliance Smart Mumbai) • Qty: 200</p>
-                    </div>
-                    <div style="width: 40%;">
-                        <div class="flex-between" style="font-size: 0.8rem; margin-bottom: 5px;">
-                            <span class="text-green">In Transit</span>
-                            <span class="text-secondary">Arriving in 2 Days</span>
-                        </div>
-                        <div class="progress-bar-bg">
-                            <div class="progress-bar-fill" style="width: 75%; background: var(--success);"></div>
-                        </div>
-                    </div>
-                </section>
-                
-                <section class="glass-card flex-between" style="padding: 1.5rem;">
-                    <div>
-                        <h3 style="margin-bottom: 0.5rem;">Order #88391 - Kellogg's Corn Flakes</h3>
-                        <p style="color: var(--text-secondary); font-size: 0.9rem;">Heading to: Warehouse Main • Qty: 1000</p>
-                    </div>
-                    <div style="width: 40%;">
-                        <div class="flex-between" style="font-size: 0.8rem; margin-bottom: 5px;">
-                            <span style="color: var(--accent);">Processing at Factory</span>
-                            <span class="text-secondary">Arriving in 6 Days</span>
-                        </div>
-                        <div class="progress-bar-bg">
-                            <div class="progress-bar-fill" style="width: 25%; background: var(--accent);"></div>
-                        </div>
-                    </div>
-                </section>
+                <!-- Tracking cards will be loaded dynamically -->
             </div>
         </div>
 
@@ -305,6 +279,158 @@
                     <strong>Ordering Cost:</strong> It costs money to make delivery trucks run back and forth.<br><br>
                     Our AI automatically finds the perfect mathematical balance so you don't order too rarely (high storage cost) or too often (high truck cost).
                 </p>
+            </section>
+        </div>
+
+        <!-- NEW TAB: REAL-TIME DASHBOARD -->
+        <div id="tab-realtime" class="tab-content" style="display: none;">
+            <header class="page-title">
+                <h2>⚡ Real-Time Operations Dashboard</h2>
+                <p>Live updates every 30 seconds - Monitor your retail empire in real-time</p>
+            </header>
+
+            <div class="layout-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+                <!-- Live Sales Ticker -->
+                <section class="glass-card">
+                    <div class="card-header flex-between">
+                        <h3>💰 Live Sales</h3>
+                        <span class="live-indicator">🔴 LIVE</span>
+                    </div>
+                    <div class="metric-box focus-box">
+                        <h4>Today's Revenue</h4>
+                        <div class="val highlight" id="live-revenue">₹0</div>
+                    </div>
+                    <div class="sales-ticker" id="sales-ticker">
+                        <div class="ticker-item">Loading live transactions...</div>
+                    </div>
+                </section>
+
+                <!-- Real-Time Inventory -->
+                <section class="glass-card">
+                    <div class="card-header flex-between">
+                        <h3>📦 Live Inventory</h3>
+                        <span class="live-indicator">🔴 LIVE</span>
+                    </div>
+                    <div class="inventory-heatmap" id="inventory-heatmap">
+                        <div class="heatmap-loading">Loading inventory data...</div>
+                    </div>
+                </section>
+
+                <!-- Weather Impact -->
+                <section class="glass-card">
+                    <div class="card-header flex-between">
+                        <h3>🌤️ Weather Impact</h3>
+                        <span class="live-indicator">🔴 LIVE</span>
+                    </div>
+                    <div id="weather-dashboard">
+                        <div class="weather-loading">Loading weather data...</div>
+                    </div>
+                </section>
+
+                <!-- Competitor Monitoring -->
+                <section class="glass-card">
+                    <div class="card-header flex-between">
+                        <h3>🏪 Competitor Prices</h3>
+                        <span class="live-indicator">🔴 LIVE</span>
+                    </div>
+                    <div id="competitor-dashboard">
+                        <div class="competitor-loading">Loading competitor data...</div>
+                    </div>
+                </section>
+
+                <!-- Supplier Status -->
+                <section class="glass-card">
+                    <div class="card-header flex-between">
+                        <h3>🚛 Supplier Status</h3>
+                        <span class="live-indicator">🔴 LIVE</span>
+                    </div>
+                    <div id="supplier-dashboard">
+                        <div class="supplier-loading">Loading supplier data...</div>
+                    </div>
+                </section>
+
+                <!-- System Health -->
+                <section class="glass-card">
+                    <div class="card-header flex-between">
+                        <h3>🖥️ System Health</h3>
+                        <span class="live-indicator">🔴 LIVE</span>
+                    </div>
+                    <div id="system-health-dashboard">
+                        <div class="health-loading">Loading system metrics...</div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- NEW TAB: LIVE ANALYTICS -->
+        <div id="tab-analytics" class="tab-content" style="display: none;">
+            <header class="page-title">
+                <h2>📊 Live Business Analytics</h2>
+                <p>Real-time KPIs and performance metrics updating continuously</p>
+            </header>
+
+            <div class="layout-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                <section class="glass-card">
+                    <h3>💎 Inventory Value</h3>
+                    <div class="val highlight" id="analytics-inventory-value">₹0</div>
+                    <p class="text-secondary">Total stock value across all stores</p>
+                </section>
+
+                <section class="glass-card">
+                    <h3>⚠️ Low Stock Alerts</h3>
+                    <div class="val" id="analytics-low-stock">0</div>
+                    <p class="text-secondary">Items needing immediate attention</p>
+                </section>
+
+                <section class="glass-card">
+                    <h3>🛒 Today's Transactions</h3>
+                    <div class="val" id="analytics-transactions">0</div>
+                    <p class="text-secondary">Total sales transactions today</p>
+                </section>
+
+                <section class="glass-card">
+                    <h3>📈 Avg Transaction Value</h3>
+                    <div class="val" id="analytics-avg-value">₹0</div>
+                    <p class="text-secondary">Average sale amount</p>
+                </section>
+            </div>
+
+            <section class="glass-card">
+                <h3>📊 Real-Time Performance Charts</h3>
+                <div class="chart-container">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+            </section>
+        </div>
+
+        <!-- NEW TAB: DEMAND PATTERNS -->
+        <div id="tab-demand" class="tab-content" style="display: none;">
+            <header class="page-title">
+                <h2>🔥 Real-Time Demand Patterns</h2>
+                <p>AI-powered insights into customer behavior and market trends</p>
+            </header>
+
+            <div class="layout-grid" style="grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
+                <section class="glass-card">
+                    <h3>📈 Trending Products</h3>
+                    <div id="trending-products">
+                        <div class="loading">Loading trending data...</div>
+                    </div>
+                </section>
+
+                <section class="glass-card">
+                    <h3>🗓️ Seasonal Trends</h3>
+                    <div id="seasonal-trends">
+                        <div class="loading">Loading seasonal data...</div>
+                    </div>
+                </section>
+            </div>
+
+            <section class="glass-card">
+                <h3>💰 Price Sensitivity Analysis</h3>
+                <div id="price-sensitivity">
+                    <div class="loading">Loading price analysis...</div>
+                </div>
             </section>
         </div>
 

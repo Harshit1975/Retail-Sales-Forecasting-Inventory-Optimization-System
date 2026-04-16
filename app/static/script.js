@@ -1,9 +1,24 @@
 let forecastChart = null;
 let baseForecastData = null; // Store for raw API data
 let currentForecastData = null; // Store for export/simulated data
+let performanceChart = null;
+
+// Socket.IO for real-time updates
+let socket = null;
+let realtimeData = {
+    inventory: {},
+    sales: {total_today: 0, transactions: []},
+    weather: {},
+    competitors: {},
+    suppliers: {},
+    analytics: {},
+    demand: {}
+};
 
 document.addEventListener('DOMContentLoaded', () => {
     initChart([], []);
+    initPerformanceChart();
+    initSocketConnection();
 
     // Form logic
     const form = document.getElementById('forecast-form');
@@ -139,6 +154,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (targetId === 'tab-forecaster' && forecastChart) {
                 forecastChart.resize();
             }
+            if (targetId === 'tab-analytics' && performanceChart) {
+                performanceChart.resize();
+                performanceChart.update();
+            }
         });
     });
 
@@ -172,30 +191,29 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.style.display = 'none';
         showToast(`Success! P.O. for ${qty} Units dispatched to: ${address}`);
 
-        // Add to Live Tracking Tab
-        const trackingContainer = document.getElementById('tracking-container');
-        const orderId = Math.floor(10000 + Math.random() * 90000); // Random Order ID
+        // Add to Live Tracking Data
+        const orderId = Math.floor(10000 + Math.random() * 90000);
+        const trackingId = `TRK-2026-${Math.floor(10000 + Math.random() * 90000)}`;
         
-        const newTrackingCard = document.createElement('section');
-        newTrackingCard.className = 'glass-card flex-between';
-        newTrackingCard.style.padding = '1.5rem';
-        newTrackingCard.innerHTML = `
-            <div>
-                <h3 style="margin-bottom: 0.5rem;">Order #${orderId} - ${itemName}</h3>
-                <p style="color: var(--text-secondary); font-size: 0.9rem;">Heading to: ${address} • Qty: ${qty}</p>
-            </div>
-            <div style="width: 40%;">
-                <div class="flex-between" style="font-size: 0.8rem; margin-bottom: 5px;">
-                    <span style="color: #38bdf8;">Just Dispatched</span>
-                    <span class="text-secondary">Arriving in 3 Days</span>
-                </div>
-                <div class="progress-bar-bg">
-                    <div class="progress-bar-fill" style="width: 5%; background: #38bdf8;"></div>
-                </div>
-            </div>
-        `;
-        // Insert at top
-        trackingContainer.insertBefore(newTrackingCard, trackingContainer.firstChild);
+        const newOrder = {
+            order_id: orderId.toString(),
+            product: itemName,
+            quantity: parseInt(qty),
+            destination: address,
+            status: "Just Dispatched",
+            progress: 5,
+            days_remaining: 3,
+            tracking_id: trackingId,
+            shipping_location: "Main Warehouse - 789 Supply Chain Blvd",
+            current_location: {"lat": 19.0760, "lng": 72.8777, "name": "Mumbai Warehouse"},
+            route: [
+                {"lat": 19.0760, "lng": 72.8777, "name": "Mumbai Warehouse", "status": "Departed"},
+                {"lat": 18.5204, "lng": 73.8567, "name": address, "status": "Pending"}
+            ]
+        };
+        
+        trackingData.unshift(newOrder); // Add to beginning
+        updateTrackingUI();
     });
 
     // Email Manager Modal
@@ -323,6 +341,82 @@ document.addEventListener('DOMContentLoaded', () => {
     // Leaflet map setup (only init once when tracking tab is activated)
     let mapInitialized = false;
     let trackMap = null;
+    let trackingData = [];
+
+    async function loadTrackingData() {
+        try {
+            const response = await fetch('/api/tracking');
+            trackingData = await response.json();
+            updateTrackingUI();
+        } catch (error) {
+            console.error('Error loading tracking data:', error);
+        }
+    }
+
+    function updateTrackingUI() {
+        const container = document.getElementById('tracking-container');
+        container.innerHTML = '';
+
+        trackingData.forEach(order => {
+            const card = document.createElement('section');
+            card.className = 'glass-card flex-between';
+            card.style.padding = '1.5rem';
+            card.innerHTML = `
+                <div>
+                    <h3 style="margin-bottom: 0.5rem;">Order #${order.order_id} - ${order.product}</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                        Tracking ID: ${order.tracking_id}<br>
+                        From: ${order.shipping_location} • To: ${order.destination} • Qty: ${order.quantity}
+                    </p>
+                </div>
+                <div style="width: 40%;">
+                    <div class="flex-between" style="font-size: 0.8rem; margin-bottom: 5px;">
+                        <span style="color: ${order.status === 'In Transit' ? '#10b981' : '#f59e0b'};">${order.status}</span>
+                        <span class="text-secondary">Arriving in ${order.days_remaining} Days</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" style="width: ${order.progress}%; background: ${order.status === 'In Transit' ? '#10b981' : '#f59e0b'};"></div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+
+        // Update map with routes
+        if (trackMap) {
+            trackMap.eachLayer(layer => {
+                if (layer instanceof L.Marker || layer instanceof L.Polyline) {
+                    trackMap.removeLayer(layer);
+                }
+            });
+
+            trackingData.forEach(order => {
+                // Add route polyline
+                const routeCoords = order.route.map(point => [point.lat, point.lng]);
+                L.polyline(routeCoords, {color: '#38bdf8', weight: 3, opacity: 0.7}).addTo(trackMap);
+
+                // Add markers for each point
+                order.route.forEach((point, index) => {
+                    const iconColor = point.status === 'Departed' ? '#10b981' : point.status === 'In Transit' ? '#f59e0b' : '#6b7280';
+                    const markerIcon = L.divIcon({
+                        className: 'route-marker',
+                        html: `<div style="background-color: ${iconColor}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>`,
+                        iconSize: [12, 12]
+                    });
+
+                    L.marker([point.lat, point.lng], {icon: markerIcon})
+                        .addTo(trackMap)
+                        .bindPopup(`<b>${point.name}</b><br>Status: ${point.status}`);
+                });
+            });
+
+            // Fit map to show all routes
+            if (trackingData.length > 0) {
+                const allCoords = trackingData.flatMap(order => order.route.map(p => [p.lat, p.lng]));
+                trackMap.fitBounds(allCoords, {padding: [20, 20]});
+            }
+        }
+    }
 
     document.getElementById('link-tracking').addEventListener('click', () => {
         if (!mapInitialized) {
@@ -332,21 +426,345 @@ document.addEventListener('DOMContentLoaded', () => {
                     attribution: '&copy; OpenStreetMap, &copy; CartoDB',
                     maxZoom: 19
                 }).addTo(trackMap);
-
-                // Add simulated delivery markers using glowing pulse
-                const pulseIcon = L.divIcon({
-                    className: 'pulse-icon',
-                    html: '<div style="background-color: #38bdf8; width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 10px #38bdf8, 0 0 20px #38bdf8;"></div>',
-                    iconSize: [12, 12]
-                });
-
-                L.marker([19.0760, 72.8777], {icon: pulseIcon}).addTo(trackMap).bindPopup('<b>Vehicle ID: M-12</b><br>To: Mumbai Store 1');
-                L.marker([28.7041, 77.1025], {icon: pulseIcon}).addTo(trackMap).bindPopup('<b>Vehicle ID: D-08</b><br>To: Delhi Amazon Fresh');
-                
                 mapInitialized = true;
-            }, 200); // 200ms delay to ensure display:block is fully rendered for map size
+            }, 200);
         }
+        loadTrackingData();
     });
+
+    // ===== REAL-TIME FEATURES =====
+
+    function initSocketConnection() {
+        socket = io();
+
+        socket.on('connect', () => {
+            console.log('Connected to real-time server');
+            showToast('🔴 Connected to Live Updates');
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from real-time server');
+            showToast('⚠️ Real-time connection lost');
+        });
+
+        // Real-time data handlers
+        socket.on('inventory_update', (data) => {
+            realtimeData.inventory = data;
+            updateRealtimeInventory();
+        });
+
+        socket.on('sales_update', (data) => {
+            realtimeData.sales = data;
+            updateRealtimeSales();
+        });
+
+        socket.on('weather_update', (data) => {
+            realtimeData.weather = data;
+            updateRealtimeWeather();
+        });
+
+        socket.on('competitor_update', (data) => {
+            realtimeData.competitors = data;
+            updateRealtimeCompetitors();
+        });
+
+        socket.on('supplier_update', (data) => {
+            realtimeData.suppliers = data;
+            updateRealtimeSuppliers();
+        });
+
+        socket.on('system_health_update', (data) => {
+            updateRealtimeSystemHealth(data);
+        });
+
+        socket.on('analytics_update', (data) => {
+            realtimeData.analytics = data;
+            updateRealtimeAnalytics();
+        });
+
+        // Load initial data
+        loadRealtimeData();
+    }
+
+    async function loadRealtimeData() {
+        try {
+            const [inventory, sales, weather, competitors, suppliers, analytics, demand] = await Promise.all([
+                fetch('/api/inventory').then(r => r.json()),
+                fetch('/api/sales').then(r => r.json()),
+                fetch('/api/weather').then(r => r.json()),
+                fetch('/api/competitors').then(r => r.json()),
+                fetch('/api/suppliers').then(r => r.json()),
+                fetch('/api/analytics').then(r => r.json()),
+                fetch('/api/demand-patterns').then(r => r.json())
+            ]);
+
+            realtimeData = {inventory, sales, weather, competitors, suppliers, analytics, demand};
+            updateAllRealtimeUI();
+        } catch (error) {
+            console.error('Error loading real-time data:', error);
+        }
+    }
+
+    function updateAllRealtimeUI() {
+        updateRealtimeInventory();
+        updateRealtimeSales();
+        updateRealtimeWeather();
+        updateRealtimeCompetitors();
+        updateRealtimeSuppliers();
+        updateRealtimeAnalytics();
+        updateRealtimeDemand();
+    }
+
+    function updateRealtimeInventory() {
+        const container = document.getElementById('inventory-heatmap');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        Object.entries(realtimeData.inventory).forEach(([store, products]) => {
+            const storeDiv = document.createElement('div');
+            storeDiv.className = 'store-inventory';
+            storeDiv.innerHTML = `<h4>${store}</h4>`;
+
+            const productList = document.createElement('div');
+            productList.className = 'product-grid';
+
+            Object.values(products).forEach(product => {
+                const statusClass = product.status === 'Critical' ? 'critical' :
+                                  product.status === 'Low Stock' ? 'warning' : 'normal';
+                const productDiv = document.createElement('div');
+                productDiv.className = `product-item ${statusClass}`;
+                productDiv.innerHTML = `
+                    <span class="product-name">${product.name}</span>
+                    <span class="product-stock">${product.current_stock}</span>
+                    <span class="product-status">${product.status}</span>
+                `;
+                productList.appendChild(productDiv);
+            });
+
+            storeDiv.appendChild(productList);
+            container.appendChild(storeDiv);
+        });
+    }
+
+    function updateRealtimeSales() {
+        // Update revenue display
+        const revenueEl = document.getElementById('live-revenue');
+        if (revenueEl) {
+            revenueEl.textContent = `₹${realtimeData.sales.total_today?.toLocaleString() || 0}`;
+        }
+
+        // Update sales ticker
+        const tickerEl = document.getElementById('sales-ticker');
+        if (tickerEl && realtimeData.sales.transactions) {
+            tickerEl.innerHTML = realtimeData.sales.transactions.slice(0, 5).map(tx => `
+                <div class="ticker-item">
+                    <span class="store">${tx.store}</span> •
+                    <span class="product">${tx.product_name}</span> •
+                    <span class="amount">₹${tx.total}</span>
+                </div>
+            `).join('');
+        }
+    }
+
+    function updateRealtimeWeather() {
+        const container = document.getElementById('weather-dashboard');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        Object.entries(realtimeData.weather).forEach(([city, data]) => {
+            const weatherDiv = document.createElement('div');
+            weatherDiv.className = 'weather-item';
+            weatherDiv.innerHTML = `
+                <h4>${city}</h4>
+                <div class="weather-info">
+                    <span class="temp">${data.temperature}°C</span>
+                    <span class="condition">${data.condition}</span>
+                    <span class="humidity">${data.humidity}% humidity</span>
+                </div>
+                <div class="forecast">
+                    ${data.forecast?.map(f => `<span>${f.day}: ${f.temp}°C ${f.condition}</span>`).join(' • ') || ''}
+                </div>
+            `;
+            container.appendChild(weatherDiv);
+        });
+    }
+
+    function updateRealtimeCompetitors() {
+        const container = document.getElementById('competitor-dashboard');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        Object.values(realtimeData.competitors).forEach(product => {
+            const productDiv = document.createElement('div');
+            productDiv.className = 'competitor-product';
+            productDiv.innerHTML = `
+                <h4>${product.product_name}</h4>
+                <div class="price-comparison">
+                    <div class="our-price">Our Price: ₹${product.our_price}</div>
+                    <div class="competitor-prices">
+                        ${Object.entries(product.competitors).map(([comp, data]) => `
+                            <span class="${data.price < product.our_price ? 'lower' : 'higher'}">
+                                ${comp}: ₹${data.price} ${data.in_stock ? '✓' : '✗'}
+                            </span>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            container.appendChild(productDiv);
+        });
+    }
+
+    function updateRealtimeSuppliers() {
+        const container = document.getElementById('supplier-dashboard');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        Object.values(realtimeData.suppliers).forEach(supplier => {
+            const statusClass = supplier.status === 'Active' ? 'active' :
+                              supplier.status === 'Delayed' ? 'delayed' : 'on-hold';
+            const supplierDiv = document.createElement('div');
+            supplierDiv.className = `supplier-item ${statusClass}`;
+            supplierDiv.innerHTML = `
+                <h4>${supplier.name}</h4>
+                <div class="supplier-info">
+                    <span>Status: ${supplier.status}</span>
+                    <span>Lead Time: ${supplier.lead_time_days} days</span>
+                    <span>Reliability: ${supplier.reliability_score}%</span>
+                    <span>Products: ${supplier.products_available}</span>
+                </div>
+            `;
+            container.appendChild(supplierDiv);
+        });
+    }
+
+    function updateRealtimeSystemHealth(data) {
+        const container = document.getElementById('system-health-dashboard');
+        if (!container) return;
+
+        const cpuPercent = data.cpu || 0;
+        const memoryPercent = data.memory || 0;
+        const responseTime = data.response_time || 0;
+
+        container.innerHTML = `
+            <div class="health-metric">
+                <span>CPU Usage</span>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" style="width: ${cpuPercent}%; background: ${cpuPercent > 70 ? '#ef4444' : '#10b981'};"></div>
+                </div>
+                <span>${cpuPercent}%</span>
+            </div>
+            <div class="health-metric">
+                <span>Memory Usage</span>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" style="width: ${memoryPercent}%; background: ${memoryPercent > 80 ? '#ef4444' : '#10b981'};"></div>
+                </div>
+                <span>${memoryPercent}%</span>
+            </div>
+            <div class="health-metric">
+                <span>Response Time</span>
+                <span>${responseTime}ms</span>
+            </div>
+        `;
+    }
+
+    function updateRealtimeAnalytics() {
+        if (!realtimeData.analytics) return;
+
+        document.getElementById('analytics-inventory-value').textContent =
+            `₹${realtimeData.analytics.inventory_value?.toLocaleString() || 0}`;
+        document.getElementById('analytics-low-stock').textContent =
+            realtimeData.analytics.low_stock_alerts || 0;
+        document.getElementById('analytics-transactions').textContent =
+            realtimeData.analytics.transaction_count || 0;
+        document.getElementById('analytics-avg-value').textContent =
+            `₹${Math.round(realtimeData.analytics.avg_transaction_value || 0)}`;
+
+        if (performanceChart && realtimeData.analytics.trend_labels) {
+            performanceChart.data.labels = realtimeData.analytics.trend_labels;
+            performanceChart.data.datasets[0].data = realtimeData.analytics.revenue_trend || [];
+            performanceChart.data.datasets[1].data = realtimeData.analytics.transaction_trend || [];
+            performanceChart.update();
+        }
+    }
+
+    function updateRealtimeDemand() {
+        if (!realtimeData.demand) return;
+
+        // Trending products
+        const trendingEl = document.getElementById('trending-products');
+        if (trendingEl && realtimeData.demand.trending_products) {
+            trendingEl.innerHTML = realtimeData.demand.trending_products.map(product => `
+                <div class="trending-item">
+                    <span class="product-name">${product.name}</span>
+                    <span class="demand-increase">+${product.demand_increase}%</span>
+                    <span class="social-mentions">${product.social_mentions} mentions</span>
+                </div>
+            `).join('');
+        }
+
+        // Seasonal trends
+        const seasonalEl = document.getElementById('seasonal-trends');
+        if (seasonalEl && realtimeData.demand.seasonal_trends) {
+            seasonalEl.innerHTML = Object.entries(realtimeData.demand.seasonal_trends).map(([season, items]) => `
+                <div class="season-item">
+                    <h4>${season.replace('_', ' ').toUpperCase()}</h4>
+                    <div class="season-items">${items.join(', ')}</div>
+                </div>
+            `).join('');
+        }
+
+        // Price sensitivity
+        const priceEl = document.getElementById('price-sensitivity');
+        if (priceEl && realtimeData.demand.price_sensitivity) {
+            priceEl.innerHTML = Object.entries(realtimeData.demand.price_sensitivity).map(([category, sensitivity]) => `
+                <div class="price-item">
+                    <span class="category">${category}</span>
+                    <span class="sensitivity ${sensitivity.toLowerCase()}">${sensitivity}</span>
+                </div>
+            `).join('');
+        }
+    }
+
+    function initPerformanceChart() {
+        const ctx = document.getElementById('performanceChart');
+        if (!ctx) return;
+
+        performanceChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Revenue Trend',
+                    data: [],
+                    borderColor: '#00ff88',
+                    backgroundColor: 'rgba(0, 255, 136, 0.1)',
+                    tension: 0.4
+                }, {
+                    label: 'Transaction Count',
+                    data: [],
+                    borderColor: '#ff6b6b',
+                    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    // Initialize real-time features
+    initSocketConnection();
 
 }); // end DOMContentLoaded
 

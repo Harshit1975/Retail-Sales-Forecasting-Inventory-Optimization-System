@@ -1,4 +1,4 @@
-﻿# AI-Powered Retail Sales Forecasting & Inventory Optimization System
+﻿🛒 AI-Powered Retail Sales Forecasting & Inventory Optimization System
 
 > Enterprise-style retail analytics platform | Demand forecasting | Inventory policy automation | Interactive decision dashboard
 
@@ -14,6 +14,8 @@ This project is a professional proof-of-concept for retail demand planning. It c
 The system helps answer a practical business question:
 
 > How much stock should a store order today based on expected demand, lead time, and forecast uncertainty?
+
+It also includes live dashboard capabilities for real-time inventory, sales, weather, supplier, competitor, and delivery tracking insights.
 
 Instead of stopping at model metrics alone, the project turns forecast output into direct inventory actions such as:
 
@@ -118,6 +120,13 @@ This project shows how AI and operations logic can work together to move from re
 - Mock dispatch workflow for purchase orders
 - Live order tracking style interface
 - Executive PDF export for reporting
+
+### Live Real-Time Insights
+
+- Real-time analytics dashboard with trend charting
+- Auto-refreshing sales and inventory updates
+- Weather, supplier, and competitor tracking
+- Business-ready KPI cards for instant decision support
 
 ---
 
@@ -306,8 +315,9 @@ http://127.0.0.1:5000
 3. Set lead time
 4. Run the forecast
 5. Review the recommended order quantity, reorder point, safety stock, and EOQ
-6. Use what-if controls to simulate promotions, rain, or holiday demand spikes
-7. Export the results as a PDF report
+6. Use what-if controls to simulate promotion, rain, or holiday demand scenarios
+7. Open the Real-Time Dashboard, Live Analytics, or Demand Patterns tabs for continuously updating insights
+8. Export the results as a PDF report
 
 ---
 
