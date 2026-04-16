@@ -24,6 +24,9 @@ Instead of stopping at model metrics alone, the project turns forecast output in
 - EOQ
 - recommended order quantity
 
+<img width="1845" height="888" alt="Screenshot 2026-04-16 125932" src="https://github.com/user-attachments/assets/7289d9b2-4835-4533-82ef-547ecd82ba9a" />
+
+
 ## Why This Matters
 
 Retail operations constantly face two expensive problems:
