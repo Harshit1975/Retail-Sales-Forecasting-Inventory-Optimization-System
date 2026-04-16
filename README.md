@@ -1,4 +1,4 @@
-﻿🛒 AI-Powered Retail Sales Forecasting & Inventory Optimization System
+﻿# 🛒 AI-Powered Retail Sales Forecasting & Inventory Optimization System
 
 > Enterprise-style retail analytics platform | Demand forecasting | Inventory policy automation | Interactive decision dashboard
 
