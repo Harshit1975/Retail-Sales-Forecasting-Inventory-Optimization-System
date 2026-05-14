@@ -9,10 +9,6 @@
 [![LinkedIn Demo](https://img.shields.io/badge/LinkedIn-Demo-blue?style=flat-square&logo=linkedin)](https://www.linkedin.com/feed/update/urn:li:activity:7451226487879532545)
 [![GitHub Repo](https://img.shields.io/badge/GitHub-Repository-black?style=flat-square&logo=github)](https://github.com/Harshit1975/Retail-Sales-Forecasting-Inventory-Optimization-System)
 
-## Links
-- **Demo Video / LinkedIn Post:** [Watch Demo on LinkedIn](https://www.linkedin.com/feed/update/urn:li:activity:7451226487879532545)
-- **GitHub Repository:** [Retail-Sales-Forecasting-Inventory-Optimization-System](https://github.com/Harshit1975/Retail-Sales-Forecasting-Inventory-Optimization-System)
-
 ## Overview
 
 This project is a professional proof-of-concept for retail demand planning. It combines synthetic retail data generation, machine learning-based sales forecasting, and operations research style inventory calculations in a single web application.
