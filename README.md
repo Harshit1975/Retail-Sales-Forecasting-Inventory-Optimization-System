@@ -1,4 +1,4 @@
-﻿# 🛒 AI-Powered Retail Sales Forecasting & Inventory Optimization System
+# 🛒 AI-Powered Retail Sales Forecasting & Inventory Optimization System
 
 > Enterprise-style retail analytics platform | Demand forecasting | Inventory policy automation | Interactive decision dashboard
 
@@ -6,6 +6,12 @@
 ![Flask](https://img.shields.io/badge/Flask-Web%20App-green?style=flat-square&logo=flask)
 ![Machine Learning](https://img.shields.io/badge/ML-RandomForest-orange?style=flat-square)
 ![Domain](https://img.shields.io/badge/Domain-Retail%20Analytics-purple?style=flat-square)
+[![LinkedIn Demo](https://img.shields.io/badge/LinkedIn-Demo-blue?style=flat-square&logo=linkedin)](https://www.linkedin.com/feed/update/urn:li:activity:7451226487879532545)
+[![GitHub Repo](https://img.shields.io/badge/GitHub-Repository-black?style=flat-square&logo=github)](https://github.com/Harshit1975/Retail-Sales-Forecasting-Inventory-Optimization-System)
+
+## Links
+- **Demo Video / LinkedIn Post:** [Watch Demo on LinkedIn](https://www.linkedin.com/feed/update/urn:li:activity:7451226487879532545)
+- **GitHub Repository:** [Retail-Sales-Forecasting-Inventory-Optimization-System](https://github.com/Harshit1975/Retail-Sales-Forecasting-Inventory-Optimization-System)
 
 ## Overview
 
